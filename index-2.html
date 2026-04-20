@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Lead Engine — Active Licensed Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ─── RESET ─────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:'Inter',system-ui,sans-serif;background:#0e0e0e;color:#eeebe5;min-height:100vh;line-height:1.5}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font-family:inherit;font-size:13px}
+input,select,textarea{background:#242424;color:#eeebe5;border:1px solid #333;border-radius:7px;outline:none;padding:9px 12px;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:#c9a84c}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+
+/* ─── VARIABLES ────────────────────────────────────────────────────────── */
+:root{
+  --bg:#0e0e0e; --s1:#181818; --s2:#202020; --s3:#282828; --s4:#303030;
+  --border:#333; --border2:#3e3e3e;
+  --text:#eeebe5; --muted:#6a6460; --muted2:#9a9490;
+  --gold:#c9a84c; --gold-dim:rgba(201,168,76,.12); --gold-brd:rgba(201,168,76,.35);
+  --green:#3b9e6f; --green-bg:rgba(59,158,111,.1);
+  --amber:#d4890a; --red:#d45f5f; --blue:#5a9fd4; --purple:#9b6dff;
+}
+
+/* ─── LAYOUT ────────────────────────────────────────────────────────────── */
+#app{display:flex;flex-direction:column;min-height:100vh}
+
+/* ─── HEADER ─────────────────────────────────────────────────────────────── */
+#header{
+  position:sticky;top:0;z-index:100;
+  background:var(--s1);border-bottom:1px solid var(--border);
+  height:54px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;gap:12px;
+}
+.logo{
+  font-family:'Playfair Display',serif;font-size:17px;color:var(--gold);
+  letter-spacing:.8px;display:flex;align-items:center;gap:10px;white-space:nowrap;
+}
+.logo-badge{
+  font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
+  letter-spacing:.08em;background:var(--green);color:#fff;
+  padding:2px 7px;border-radius:10px;text-transform:uppercase;
+}
+.hdr-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+/* ─── STATS BAR ──────────────────────────────────────────────────────────── */
+#stats-bar{
+  background:var(--s1);border-bottom:1px solid var(--border);
+  display:flex;overflow-x:auto;flex-shrink:0;
+}
+.stat{
+  padding:11px 18px;display:flex;flex-direction:column;gap:2px;
+  border-right:1px solid var(--border);cursor:pointer;
+  transition:background .12s;flex-shrink:0;min-width:80px;
+}
+.stat:hover{background:var(--s2)}
+.stat-n{font-family:'Playfair Display',serif;font-size:21px;line-height:1;letter-spacing:-.3px}
+.stat-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:2px}
+
+/* ─── PIPELINE FILTER ────────────────────────────────────────────────────── */
+#pipeline{
+  background:var(--s1);border-bottom:1px solid var(--border);
+  padding:9px 24px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;
+}
+.pipe-label{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-right:6px}
+.pipe-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 11px;border-radius:20px;
+  border:1px solid var(--border2);font-size:11px;font-weight:600;
+  cursor:pointer;background:transparent;color:var(--muted);transition:all .12s;
+}
+.pipe-btn:hover{border-color:var(--gold);color:var(--gold)}
+.pipe-btn.active{background:var(--gold-dim);border-color:var(--gold-brd);color:var(--gold)}
+.pipe-count{
+  font-size:9px;padding:0 5px;border-radius:8px;
+  background:var(--s3);color:var(--muted);
+}
+.pipe-btn.active .pipe-count{background:rgba(201,168,76,.2);color:var(--gold)}
+
+/* ─── BULK ACTION BAR ───────────────────────────────────────────────────── */
+#bulk-bar{
+  display:none;background:#191400;border-bottom:1px solid rgba(201,168,76,.25);
+  padding:8px 24px;align-items:center;gap:10px;flex-wrap:wrap;
+}
+#bulk-bar.visible{display:flex}
+.bulk-count{font-size:12px;font-weight:700;color:var(--gold)}
+
+/* ─── TOOLBAR ────────────────────────────────────────────────────────────── */
+#toolbar{
+  padding:14px 24px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+.search-wrap{position:relative;flex:1;max-width:300px}
+.search-icon{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:var(--muted);pointer-events:none;font-size:15px;
+}
+.search-wrap input{width:100%;padding-left:32px}
+#toolbar select{padding:9px 11px;cursor:pointer}
+.toolbar-right{margin-left:auto;display:flex;gap:6px}
+
+/* ─── STATUS LINE ────────────────────────────────────────────────────────── */
+#status-line{
+  padding:0 24px;height:28px;display:flex;align-items:center;
+  gap:7px;font-size:11px;color:var(--muted);
+}
+.status-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;
+}
+.status-dot.active{background:var(--green);animation:pulse 1.3s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ─── LEAD GRID ──────────────────────────────────────────────────────────── */
+#lead-grid{
+  padding:14px 24px 60px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:13px;
+}
+
+/* ─── LEAD CARD ──────────────────────────────────────────────────────────── */
+.lead-card{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:11px;padding:16px;cursor:pointer;position:relative;
+  transition:transform .18s,box-shadow .18s,border-color .18s;overflow:hidden;
+}
+.lead-card:hover{
+  transform:translateY(-2px);border-color:var(--border2);
+  box-shadow:0 6px 28px rgba(0,0,0,.45);
+}
+.lead-card.selected{
+  border-color:var(--gold-brd);
+  box-shadow:0 0 0 2px rgba(201,168,76,.18);
+}
+/* Score color bar at top */
+.card-top-bar{position:absolute;top:0;left:0;right:0;height:2px;border-radius:11px 11px 0 0}
+/* Active badge */
+.active-badge{
+  position:absolute;top:12px;right:34px;
+  font-size:8px;font-weight:700;color:var(--green);
+  text-transform:uppercase;letter-spacing:.08em;
+}
+/* Checkbox */
+.card-checkbox{
+  position:absolute;top:11px;right:12px;
+  width:15px;height:15px;border-radius:3px;
+  border:1.5px solid var(--border2);background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--gold);cursor:pointer;z-index:2;
+  transition:all .12s;
+}
+.lead-card.selected .card-checkbox{
+  border-color:var(--gold);background:var(--gold-dim);
+}
+/* Card body */
+.card-row{display:flex;gap:11px;margin-bottom:11px;align-items:flex-start}
+.card-avatar{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:14px;border:1px solid;
+}
+.card-info{flex:1;min-width:0}
+.card-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-location{font-size:11px;color:var(--muted);margin-top:2px}
+.card-score{text-align:center;flex-shrink:0;padding-right:20px}
+.score-num{font-family:'Playfair Display',serif;font-size:19px;line-height:1}
+.score-label{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+/* Score progress bar */
+.score-bar-track{height:2px;background:var(--s3);border-radius:2px;margin-bottom:11px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+/* Chips */
+.card-chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 7px;border-radius:12px;font-size:9px;font-weight:600;
+  border:1px solid var(--border);color:var(--muted);
+}
+.chip.has{border-color:var(--border2);color:var(--text);background:var(--s3)}
+.chip.lic{border-color:rgba(59,158,111,.3);color:var(--green);background:rgba(59,158,111,.07)}
+
+/* ─── EMPTY / ONBOARD ────────────────────────────────────────────────────── */
+#onboard{grid-column:1/-1;display:none}
+#onboard.show{display:block}
+.onboard-card{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:12px;padding:36px;max-width:680px;margin:0 auto;
+}
+.onboard-title{font-family:'Playfair Display',serif;font-size:26px;margin-bottom:10px}
+.onboard-sub{font-size:13px;color:var(--muted2);margin-bottom:26px;line-height:1.7;max-width:520px}
+.onboard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px}
+.onboard-feature{background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.onboard-feature strong{display:block;font-size:12px;margin-bottom:5px;color:var(--text)}
+.onboard-feature p{font-size:11px;color:var(--muted2);line-height:1.6}
+.onboard-states{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px}
+.state-quick{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 13px;border-radius:8px;
+  border:1px solid var(--border2);font-size:12px;font-weight:600;
+  cursor:pointer;background:transparent;color:var(--muted2);transition:all .14s;
+}
+.state-quick:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+#no-results{grid-column:1/-1;text-align:center;padding:60px 20px;display:none}
+#no-results.show{display:block}
+#no-results p{color:var(--muted);font-size:13px;margin-top:10px}
+
+/* ─── OVERLAY + MODAL ────────────────────────────────────────────────────── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);
+  z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--s1);border-radius:13px;width:100%;max-width:600px;
+  max-height:91vh;overflow-y:auto;border:1px solid var(--border2);
+  box-shadow:0 32px 80px rgba(0,0,0,.75);transform:translateY(14px);transition:transform .22s;
+}
+.overlay.open .modal{transform:none}
+.modal-header{
+  padding:22px 22px 0;display:flex;justify-content:space-between;
+  align-items:flex-start;margin-bottom:16px;
+}
+.modal-name{font-family:'Playfair Display',serif;font-size:21px}
+.modal-sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.close-btn{
+  width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);
+  background:var(--s3);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:14px;color:var(--muted);flex-shrink:0;transition:all .12s;
+}
+.close-btn:hover{background:var(--border);color:var(--text)}
+/* Modal tabs */
+.modal-tabs{display:flex;border-bottom:1px solid var(--border);margin:0 22px 18px}
+.modal-tab{
+  padding:8px 16px;font-size:10px;font-weight:700;cursor:pointer;
+  border-bottom:2px solid transparent;color:var(--muted);transition:all .12s;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.modal-tab.active{border-bottom-color:var(--gold);color:var(--gold)}
+.modal-body{padding:0 22px 22px}
+
+/* ─── MODAL CONTENT STYLES ───────────────────────────────────────────────── */
+.section-title{
+  font-size:9px;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--muted);font-weight:700;margin:18px 0 10px;
+}
+.score-block{
+  display:flex;align-items:center;gap:14px;padding:14px;
+  background:var(--s2);border:1px solid var(--border);border-radius:9px;margin-bottom:13px;
+}
+.score-big{font-family:'Playfair Display',serif;font-size:34px;line-height:1}
+.score-track-lg{flex:1;height:5px;background:var(--border);border-radius:5px;overflow:hidden}
+.score-fill-lg{height:100%;border-radius:5px;transition:width .4s}
+
+.summary-box{
+  background:var(--s2);padding:12px 14px;border-radius:8px;
+  border-left:3px solid var(--border);font-size:12px;line-height:1.72;
+  color:#c8c5c0;margin-bottom:4px;
+}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.info-cell{padding:11px 13px;background:var(--s2);border:1px solid var(--border);border-radius:8px}
+.info-cell.full{grid-column:1/-1}
+.info-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.info-value{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info-value a{color:var(--gold)}
+.info-value a:hover{text-decoration:underline}
+.info-cell.empty .info-value{color:var(--muted);font-weight:400}
+
+.license-box{
+  background:rgba(59,158,111,.08);border:1px solid rgba(59,158,111,.2);
+  border-radius:8px;padding:12px 14px;margin-bottom:6px;
+  font-size:12px;color:var(--green);line-height:1.9;
+}
+
+.links-row{display:flex;flex-wrap:wrap;gap:7px}
+.ext-link{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 11px;border:1px solid var(--border2);border-radius:7px;
+  font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.04em;transition:all .12s;
+}
+.ext-link:hover{border-color:var(--gold);color:var(--gold)}
+
+/* AI tab */
+.ai-notice{
+  background:#1a1200;border:1px solid rgba(201,168,76,.28);border-radius:8px;
+  padding:12px 14px;font-size:11px;color:var(--gold);line-height:1.65;margin-bottom:16px;
+}
+.ai-output{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:14px;font-size:12px;line-height:1.78;color:#c8c5c0;
+  white-space:pre-wrap;max-height:240px;overflow-y:auto;margin-top:10px;
+}
+.ai-output.gold-left{border-left:3px solid var(--gold)}
+.ai-output.purple-left{border-left:3px solid var(--purple)}
+.subject-line{
+  padding:6px 11px;background:var(--s3);border:1px solid var(--border);
+  border-radius:6px;font-size:11px;color:#c8c5c0;margin-bottom:5px;cursor:pointer;
+  transition:border-color .12s;
+}
+.subject-line:hover{border-color:var(--gold)}
+.ai-error{
+  padding:10px 13px;background:#1e0808;border:1px solid rgba(212,95,95,.3);
+  border-radius:8px;font-size:11px;color:var(--red);margin-top:10px;line-height:1.6;
+}
+.template-note{font-size:9px;color:var(--muted);margin-top:6px;font-style:italic}
+
+/* Pipeline tab */
+.notes-area{
+  width:100%;padding:10px 12px;border-radius:7px;resize:vertical;
+  min-height:72px;font-size:13px;margin-bottom:11px;
+}
+
+/* Activity log */
+.act-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px}
+.act-item:last-child{border-bottom:none}
+.act-badge{
+  padding:2px 7px;border-radius:10px;font-size:8px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;align-self:flex-start;margin-top:1px;
+}
+
+/* ─── SIDE PANEL ─────────────────────────────────────────────────────────── */
+#side-panel{
+  position:fixed;top:0;right:0;bottom:0;width:370px;
+  background:var(--s1);border-left:1px solid var(--border);
+  box-shadow:-6px 0 30px rgba(0,0,0,.55);z-index:150;
+  display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .22s ease;
+}
+#side-panel.open{transform:none}
+.panel-header{
+  padding:17px 20px 15px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;flex-shrink:0;
+}
+.panel-title{font-size:14px;font-weight:700}
+.panel-body{flex:1;overflow-y:auto;padding:20px}
+
+/* Form elements */
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+.form-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--muted)}
+.form-group input,.form-group select,.form-group textarea{padding:9px 12px;width:100%}
+.form-row{display:flex;gap:8px}
+.form-row .form-group{flex:1}
+.form-hint{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5}
+.divider{height:1px;background:var(--border);margin:18px 0}
+code{
+  font-family:monospace;font-size:10px;background:var(--s3);
+  padding:1px 5px;border-radius:3px;color:var(--gold);
+}
+
+/* ─── BUTTONS ─────────────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 15px;border-radius:7px;font-size:12px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border2);background:transparent;
+  color:var(--muted);transition:all .14s;white-space:nowrap;
+}
+.btn:hover{border-color:var(--border2);color:var(--text)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-gold{background:var(--gold-dim);border-color:var(--gold-brd);color:var(--gold)}
+.btn-gold:hover{background:rgba(201,168,76,.2);border-color:var(--gold)}
+.btn-danger{color:var(--red);border-color:rgba(212,95,95,.3)}
+.btn-danger:hover{background:rgba(212,95,95,.1)}
+.btn-full{width:100%}
+
+/* Spinner */
+.spinner{
+  width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .5s linear infinite;display:inline-block;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── TOAST ──────────────────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:20px;right:20px;max-width:300px;
+  padding:11px 17px;border-radius:8px;font-size:12px;font-weight:600;
+  box-shadow:0 4px 20px rgba(0,0,0,.45);z-index:999;border:1px solid;
+  transform:translateY(70px);opacity:0;transition:all .24s;pointer-events:none;
+}
+#toast.visible{transform:none;opacity:1}
+#toast.ok    {background:#0d2218;border-color:#1a4a2a;color:var(--green)}
+#toast.err   {background:#2a0a0a;border-color:#4a1a1a;color:var(--red)}
+#toast.info  {background:#0a1829;border-color:#1a3460;color:var(--blue)}
+#toast.ai    {background:#180a28;border-color:#2a1450;color:var(--purple)}
+#toast.plain {background:var(--s2);border-color:var(--border2);color:var(--text)}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media(max-width:640px){
+  #header,#stats-bar,#pipeline,#toolbar,#lead-grid,#status-line,#bulk-bar{padding-left:14px;padding-right:14px}
+  #side-panel{width:100%}
+  .onboard-grid{grid-template-columns:1fr}
+  .info-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="logo">
+      Lead Engine
+      <span class="logo-badge">Active Only</span>
+    </div>
+    <div class="hdr-btns">
+      <button class="btn btn-sm" onclick="openPanel('add')">+ Add Lead</button>
+      <button class="btn btn-sm" onclick="doExport()">↓ Export CSV</button>
+      <button class="btn btn-sm" onclick="openPanel('settings')">⚙ Settings</button>
+      <button class="btn btn-gold btn-sm" id="find-btn" onclick="openPanel('find')">▶ Find Active Agents</button>
+    </div>
+  </header>
+
+  <!-- STATS BAR -->
+  <div id="stats-bar">
+    <div class="stat" onclick="setPipeFilter('all')">
+      <span class="stat-n" id="stat-total">0</span>
+      <span class="stat-l">Total</span>
+    </div>
+    <div class="stat" onclick="setPipeFilter('new')">
+      <span class="stat-n" id="stat-new">0</span>
+      <span class="stat-l">New</span>
+    </div>
+    <div class="stat" onclick="setPipeFilter('contacted')">
+      <span class="stat-n" id="stat-contacted">0</span>
+      <span class="stat-l">Contacted</span>
+    </div>
+    <div class="stat" onclick="setPipeFilter('qualified')">
+      <span class="stat-n" id="stat-qualified" style="color:var(--amber)">0</span>
+      <span class="stat-l">Qualified</span>
+    </div>
+    <div class="stat" onclick="setPipeFilter('converted')">
+      <span class="stat-n" id="stat-converted" style="color:var(--green)">0</span>
+      <span class="stat-l">Converted</span>
+    </div>
+    <div class="stat">
+      <span class="stat-n" id="stat-email">0</span>
+      <span class="stat-l">With Email</span>
+    </div>
+    <div class="stat">
+      <span class="stat-n" id="stat-phone">0</span>
+      <span class="stat-l">With Phone</span>
+    </div>
+  </div>
+
+  <!-- PIPELINE FILTER -->
+  <div id="pipeline">
+    <span class="pipe-label">Filter</span>
+    <button class="pipe-btn active" data-filter="all"       onclick="setPipeFilter('all')">All <span class="pipe-count" id="pc-all">0</span></button>
+    <button class="pipe-btn"        data-filter="new"       onclick="setPipeFilter('new')">◆ New <span class="pipe-count" id="pc-new">0</span></button>
+    <button class="pipe-btn"        data-filter="contacted" onclick="setPipeFilter('contacted')">◎ Contacted <span class="pipe-count" id="pc-contacted">0</span></button>
+    <button class="pipe-btn"        data-filter="qualified" onclick="setPipeFilter('qualified')">★ Qualified <span class="pipe-count" id="pc-qualified">0</span></button>
+    <button class="pipe-btn"        data-filter="converted" onclick="setPipeFilter('converted')">✦ Converted <span class="pipe-count" id="pc-converted">0</span></button>
+    <button class="pipe-btn"        data-filter="archived"  onclick="setPipeFilter('archived')">▪ Archived <span class="pipe-count" id="pc-archived">0</span></button>
+  </div>
+
+  <!-- BULK ACTION BAR -->
+  <div id="bulk-bar">
+    <span class="bulk-count" id="bulk-count">0 selected</span>
+    <select id="bulk-status-sel" style="padding:5px 9px;font-size:11px;border-radius:6px">
+      <option value="">Move to status…</option>
+      <option value="new">New</option>
+      <option value="contacted">Contacted</option>
+      <option value="qualified">Qualified</option>
+      <option value="converted">Converted</option>
+      <option value="archived">Archived</option>
+    </select>
+    <button class="btn btn-sm" onclick="bulkUpdateStatus()">Apply</button>
+    <button class="btn btn-sm btn-danger" onclick="bulkDelete()">🗑 Delete Selected</button>
+    <button class="btn btn-sm" onclick="clearSelection()">✕ Clear</button>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div id="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Search name, city, state, broker…" oninput="debounceRender()"/>
+    </div>
+    <select id="score-filter" onchange="renderLeads()">
+      <option value="">All scores</option>
+      <option value="hot">🔥 Hot (8–10)</option>
+      <option value="warm">🌡 Warm (5–7)</option>
+      <option value="cold">❄ Cold (1–4)</option>
+    </select>
+    <select id="state-filter" onchange="renderLeads()">
+      <option value="">All states</option>
+    </select>
+    <div class="toolbar-right">
+      <button class="btn btn-sm" title="Select all" onclick="selectAll()">☑ All</button>
+      <button class="btn btn-sm" title="Deselect" onclick="clearSelection()">☐</button>
+    </div>
+  </div>
+
+  <!-- STATUS LINE -->
+  <div id="status-line">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Ready — click ▶ Find Active Agents to start</span>
+  </div>
+
+  <!-- LEAD GRID -->
+  <div id="lead-grid">
+    <!-- Onboarding -->
+    <div id="onboard" class="show">
+      <div class="onboard-card">
+        <div class="onboard-title">Real Agents. Active Licenses. Free.</div>
+        <div class="onboard-sub">
+          Pulls directly from official state real estate licensing boards — government public records.
+          Every agent returned has a currently <strong style="color:var(--green)">ACTIVE license</strong>.
+          No credit card. No API keys. No fake data.
+        </div>
+        <div class="onboard-grid">
+          <div class="onboard-feature">
+            <strong>✓ 100% Free</strong>
+            <p>State licensing boards are required by law to publish this data publicly. No cost, ever.</p>
+          </div>
+          <div class="onboard-feature">
+            <strong>✓ Active Only</strong>
+            <p>We only return agents with an ACTIVE license status. No expired, suspended, or retired agents.</p>
+          </div>
+          <div class="onboard-feature">
+            <strong>✓ Real Contact Info</strong>
+            <p>Phone numbers from license filings. Emails extracted from agent websites automatically.</p>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Quick start — click a state:</div>
+        <div class="onboard-states">
+          <button class="state-quick" onclick="quickSearch('Houston','TX')">🤠 Texas</button>
+          <button class="state-quick" onclick="quickSearch('Miami','FL')">🌴 Florida</button>
+          <button class="state-quick" onclick="quickSearch('Charlotte','NC')">🏛 N. Carolina</button>
+          <button class="state-quick" onclick="quickSearch('Atlanta','GA')">🍑 Georgia</button>
+        </div>
+        <p style="font-size:10px;color:var(--muted);margin-top:16px">Or click <strong style="color:var(--gold)">▶ Find Active Agents</strong> in the top right to choose any city.</p>
+      </div>
+    </div>
+    <!-- No results -->
+    <div id="no-results">
+      <div style="font-size:38px;opacity:.2">⌕</div>
+      <p>No leads match your search or filter.</p>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- PROFILE MODAL -->
+<div class="overlay" id="profile-overlay" onclick="if(event.target===this)closeProfile()">
+  <div class="modal" id="profile-modal"></div>
+</div>
+
+<!-- SIDE PANEL -->
+<div id="side-panel">
+  <div class="panel-header">
+    <span class="panel-title" id="panel-title">Panel</span>
+    <button class="close-btn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let leads        = [];
+let activity     = {};     // { leadId: [ {type, detail, ts} ] }
+let selected     = new Set();
+let pipeFilter   = 'all';
+let openLead     = null;
+let activeTab    = 'overview';
+let nextId       = 1000;
+let debounceTimer;
+
+const STATUS_META = {
+  new:       { icon: '◆', color: '#6a6460' },
+  contacted: { icon: '◎', color: '#5a9fd4' },
+  qualified: { icon: '★', color: '#d4890a' },
+  converted: { icon: '✦', color: '#3b9e6f' },
+  archived:  { icon: '▪', color: '#444' },
+};
+
+// ─── PERSIST ───────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'lead_engine_v1';
+function persist() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ leads, activity })); } catch {}
+}
+function hydrate() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.leads?.length) {
+      leads    = data.leads;
+      nextId   = Math.max(...leads.map(l => l.id || 0)) + 1;
+    }
+    if (data.activity) activity = data.activity;
+  } catch {}
+}
+
+// ─── SCORING ──────────────────────────────────────────────────────────────
+function calcScore(l) {
+  let s = 0;
+  if (l.email)          s += 3;
+  if (l.phone)          s += 3;
+  if (l.website)        s += 2;
+  if (l.license_number) s += 1;
+  if (l.broker_name)    s += 1;
+  return Math.min(10, s);
+}
+function scoreColor(s) {
+  return s >= 7 ? '#3b9e6f' : s >= 4 ? '#d4890a' : '#6a6460';
+}
+function initials(name) {
+  if (!name) return '?';
+  return name.trim().split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(s) {
+  try { return new Date(s).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+  catch { return s || '—'; }
+}
+
+// ─── STATS ─────────────────────────────────────────────────────────────────
+function updateStats() {
+  const byStatus = {};
+  Object.keys(STATUS_META).forEach(k => { byStatus[k] = 0; });
+  leads.forEach(l => { if (byStatus[l.status] !== undefined) byStatus[l.status]++; });
+
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('stat-total',     leads.length);
+  set('stat-new',       byStatus.new || 0);
+  set('stat-contacted', byStatus.contacted || 0);
+  set('stat-qualified', byStatus.qualified || 0);
+  set('stat-converted', byStatus.converted || 0);
+  set('stat-email',     leads.filter(l => l.email).length);
+  set('stat-phone',     leads.filter(l => l.phone).length);
+
+  set('pc-all',       leads.length);
+  set('pc-new',       byStatus.new || 0);
+  set('pc-contacted', byStatus.contacted || 0);
+  set('pc-qualified', byStatus.qualified || 0);
+  set('pc-converted', byStatus.converted || 0);
+  set('pc-archived',  byStatus.archived || 0);
+
+  // Update state filter dropdown
+  const states = [...new Set(leads.map(l => l.state).filter(Boolean))].sort();
+  const sf = document.getElementById('state-filter');
+  const cur = sf.value;
+  sf.innerHTML = '<option value="">All states</option>';
+  states.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sf.appendChild(o);
+  });
+  sf.value = cur;
+}
+
+// ─── FILTER ────────────────────────────────────────────────────────────────
+function getVisible() {
+  const q    = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const sf   = document.getElementById('score-filter')?.value || '';
+  const stf  = document.getElementById('state-filter')?.value || '';
+
+  return leads.filter(l => {
+    if (pipeFilter !== 'all' && l.status !== pipeFilter) return false;
+    if (q) {
+      const hay = `${l.name} ${l.city||''} ${l.state||''} ${l.email||''} ${l.broker_name||''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    const sc = l.score || 0;
+    if (sf === 'hot'  && sc < 8)            return false;
+    if (sf === 'warm' && (sc < 5 || sc >= 8)) return false;
+    if (sf === 'cold' && sc >= 5)            return false;
+    if (stf && l.state !== stf)              return false;
+    return true;
+  });
+}
+
+function setPipeFilter(f) {
+  pipeFilter = f;
+  document.querySelectorAll('.pipe-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  renderLeads();
+}
+function debounceRender() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(renderLeads, 260);
+}
+
+// ─── RENDER LEADS ─────────────────────────────────────────────────────────
+function renderLeads() {
+  updateStats();
+  const grid    = document.getElementById('lead-grid');
+  const vis     = getVisible();
+  const onboard = document.getElementById('onboard');
+  const noRes   = document.getElementById('no-results');
+
+  document.getElementById('status-text').textContent =
+    `Showing ${vis.length} of ${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
+
+  if (!leads.length) {
+    onboard?.classList.add('show');
+    noRes?.classList.remove('show');
+    grid.innerHTML = grid.innerHTML; // keep onboard/noResults divs
+    return;
+  }
+  onboard?.classList.remove('show');
+
+  if (!vis.length) {
+    noRes?.classList.add('show');
+    return;
+  }
+  noRes?.classList.remove('show');
+
+  // Build cards HTML
+  const cards = vis.map(l => {
+    const sc    = l.score || 0;
+    const col   = scoreColor(sc);
+    const isSel = selected.has(l.id);
+    const st    = STATUS_META[l.status] || STATUS_META.new;
+
+    return `
+      <div class="lead-card${isSel ? ' selected' : ''}" id="card-${l.id}" onclick="openProfile(${l.id})">
+        <div class="card-top-bar" style="background:${col}"></div>
+        <div class="active-badge">✓ ACTIVE</div>
+        <div class="card-checkbox" onclick="event.stopPropagation();toggleSelect(${l.id})">${isSel ? '✓' : ''}</div>
+        <div class="card-row">
+          <div class="card-avatar" style="background:${col}18;border-color:${col}35;color:${col}">${initials(l.name)}</div>
+          <div class="card-info">
+            <div class="card-name">${esc(l.name)}</div>
+            <div class="card-location">${esc([l.city, l.state].filter(Boolean).join(', ')) || 'Unknown location'}</div>
+          </div>
+          <div class="card-score">
+            <div class="score-num" style="color:${col}">${sc}</div>
+            <div class="score-label">score</div>
+          </div>
+        </div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width:${sc * 10}%;background:${col}"></div>
+        </div>
+        <div class="card-chips">
+          <span class="chip${l.email ? ' has' : ''}">✉ Email</span>
+          <span class="chip${l.phone ? ' has' : ''}">☎ Phone</span>
+          <span class="chip${l.website ? ' has' : ''}">🌐 Web</span>
+          ${l.license_number ? `<span class="chip lic">🏛 Licensed</span>` : ''}
+          ${l.broker_name    ? `<span class="chip has" style="font-size:8px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.broker_name)}">🏢 ${esc(l.broker_name.length > 20 ? l.broker_name.slice(0,20)+'…' : l.broker_name)}</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  grid.innerHTML = '<div id="onboard"></div><div id="no-results"></div>' + cards;
+}
+
+// ─── SELECTION ─────────────────────────────────────────────────────────────
+function toggleSelect(id) {
+  selected.has(id) ? selected.delete(id) : selected.add(id);
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.classList.toggle('selected', selected.has(id));
+    const cb = card.querySelector('.card-checkbox');
+    if (cb) cb.textContent = selected.has(id) ? '✓' : '';
+  }
+  updateBulkBar();
+}
+function selectAll()     { getVisible().forEach(l => selected.add(l.id)); renderLeads(); updateBulkBar(); }
+function clearSelection(){ selected.clear(); renderLeads(); updateBulkBar(); }
+function updateBulkBar() {
+  const n   = selected.size;
+  const bar = document.getElementById('bulk-bar');
+  bar.classList.toggle('visible', n > 0);
+  const el = document.getElementById('bulk-count');
+  if (el) el.textContent = `${n} lead${n !== 1 ? 's' : ''} selected`;
+}
+function bulkUpdateStatus() {
+  const s = document.getElementById('bulk-status-sel')?.value;
+  if (!s) return;
+  selected.forEach(id => {
+    const l = leads.find(x => x.id === id);
+    if (l) l.status = s;
+  });
+  toast(`${selected.size} leads moved to ${s}`, 'ok');
+  clearSelection(); persist(); renderLeads();
+}
+function bulkDelete() {
+  if (!confirm(`Permanently delete ${selected.size} lead(s)?`)) return;
+  const n = selected.size;
+  leads = leads.filter(l => !selected.has(l.id));
+  toast(`${n} leads deleted`);
+  clearSelection(); persist(); renderLeads();
+}
+
+// ─── PROFILE MODAL ─────────────────────────────────────────────────────────
+function openProfile(id) {
+  openLead  = leads.find(l => l.id === id);
+  if (!openLead) return;
+  activeTab = 'overview';
+  buildProfile();
+  document.getElementById('profile-overlay').classList.add('open');
+}
+function closeProfile() {
+  document.getElementById('profile-overlay').classList.remove('open');
+  openLead = null;
+}
+function switchTab(tab) {
+  activeTab = tab;
+  buildProfile();
+}
+
+function buildProfile() {
+  const l   = openLead;
+  if (!l) return;
+  const sc  = l.score || 0;
+  const col = scoreColor(sc);
+  const st  = STATUS_META[l.status] || STATUS_META.new;
+  const acts = (activity[l.id] || []).slice(0, 10);
+
+  const tabHtml = (name, label) =>
+    `<div class="modal-tab${activeTab === name ? ' active' : ''}" onclick="switchTab('${name}')">${label}</div>`;
+
+  // ── Overview tab ──────────────────────────────────────────────────────────
+  const overviewHtml = `
+    <div class="score-block">
+      <div class="score-big" style="color:${col}">${sc}</div>
+      <div style="flex:1">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em">Lead Score / 10</div>
+        <div class="score-track-lg"><div class="score-fill-lg" style="width:${sc*10}%;background:${col}"></div></div>
+      </div>
+      <button class="btn btn-sm" onclick="switchTab('ai');setTimeout(()=>callAI('explain'),100)">Why?</button>
+    </div>
+    ${l.summary ? `<div class="summary-box">${esc(l.summary)}</div>` : ''}
+
+    ${l.license_number || l.broker_name ? `
+    <div class="license-box">
+      🏛 <strong>Active Real Estate License</strong><br/>
+      ${l.license_number ? `License Number: ${esc(l.license_number)}<br/>` : ''}
+      ${l.license_type   ? `License Type: ${esc(l.license_type)}<br/>`   : ''}
+      ${l.broker_name    ? `Brokerage: ${esc(l.broker_name)}<br/>`        : ''}
+      Verified via: ${esc(l.source || 'State Licensing Board')}
+    </div>` : ''}
+
+    <div class="section-title">Contact Information</div>
+    <div class="info-grid">
+      <div class="info-cell${l.email ? '' : ' empty'}">
+        <div class="info-label">✉ Email</div>
+        <div class="info-value">${l.email
+          ? `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`
+          : '<span style="color:var(--muted)">Not found</span>'}</div>
+      </div>
+      <div class="info-cell${l.phone ? '' : ' empty'}">
+        <div class="info-label">☎ Phone</div>
+        <div class="info-value">${l.phone
+          ? `<a href="tel:${esc(l.phone)}">${esc(l.phone)}</a>`
+          : '<span style="color:var(--muted)">Not listed</span>'}</div>
+      </div>
+      <div class="info-cell full${l.website ? '' : ' empty'}">
+        <div class="info-label">🌐 Website</div>
+        <div class="info-value">${l.website
+          ? `<a href="${esc(l.website)}" target="_blank" rel="noopener">${esc(l.website)}</a>`
+          : '<span style="color:var(--muted)">Not found</span>'}</div>
+      </div>
+      ${l.address ? `
+      <div class="info-cell full">
+        <div class="info-label">📍 Address</div>
+        <div class="info-value">${esc(l.address)}</div>
+      </div>` : ''}
+    </div>
+
+    ${l.source_url ? `
+    <div class="section-title">Verify License</div>
+    <div class="links-row">
+      <a class="ext-link" href="${esc(l.source_url)}" target="_blank" rel="noopener">🏛 Official Licensing Board →</a>
+    </div>` : ''}
+
+    <div class="section-title">Record Info</div>
+    <div style="font-size:11px;color:var(--muted);line-height:2">
+      Added: ${fmtDate(l.created)}<br/>
+      Source: ${esc(l.source || 'State Licensing Board')}
+    </div>`;
+
+  // ── AI tab ────────────────────────────────────────────────────────────────
+  const aiHtml = `
+    <div class="ai-notice">
+      ✦ AI features work even without an API key — you'll get a useful template.
+      Add <code>ANTHROPIC_API_KEY</code> in Vercel → Settings → Environment Variables for fully custom AI responses.
+    </div>
+
+    <div class="section-title">AI Lead Summary</div>
+    <button class="btn btn-gold btn-full" id="btn-summary" onclick="callAI('summary')">✦ Generate Summary</button>
+    <div id="out-summary"></div>
+
+    <div class="section-title">Score Explanation</div>
+    <button class="btn btn-full" id="btn-explain" onclick="callAI('explain')">Explain This Score</button>
+    <div id="out-explain"></div>
+
+    <div class="section-title">Cold Outreach Email</div>
+    <div style="display:flex;gap:8px;margin-bottom:11px">
+      <input id="sender-name"    placeholder="Your name"    style="flex:1;padding:8px 11px"/>
+      <input id="sender-company" placeholder="Your company" style="flex:1;padding:8px 11px"/>
+    </div>
+    <button class="btn btn-gold btn-full" id="btn-outreach" onclick="callAI('outreach')">✦ Generate Outreach Email</button>
+    <div id="out-outreach"></div>
+
+    <div class="section-title">Subject Lines</div>
+    <button class="btn btn-full" id="btn-subject" onclick="callAI('subject')">✦ Generate Subject Lines</button>
+    <div id="out-subject"></div>`;
+
+  // ── Pipeline tab ──────────────────────────────────────────────────────────
+  const pipelineHtml = `
+    <div class="section-title">Pipeline Status</div>
+    <select class="notes-area" style="min-height:auto;padding:9px 12px;margin-bottom:16px" onchange="updateLeadStatus(this.value)">
+      ${Object.entries(STATUS_META).map(([k, v]) =>
+        `<option value="${k}"${l.status === k ? ' selected' : ''}>${v.icon} ${k.charAt(0).toUpperCase() + k.slice(1)}</option>`
+      ).join('')}
+    </select>
+
+    <div class="section-title">Notes</div>
+    <textarea class="notes-area" id="notes-input" placeholder="Add notes about this lead…">${esc(l.notes || '')}</textarea>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn" style="flex:1" onclick="saveNotes()">💾 Save Notes</button>
+      <button class="btn btn-danger" onclick="deleteLead()">🗑 Delete Lead</button>
+    </div>
+
+    ${acts.length ? `
+    <div class="section-title">Activity Log</div>
+    ${acts.map(a => {
+      const colors = {
+        outreach: { bg:'#0a1020', color:'var(--blue)' },
+        status:   { bg:'#081a0a', color:'var(--green)' },
+        note:     { bg:'#1a1400', color:'var(--gold)' },
+      };
+      const c = colors[a.type] || colors.note;
+      return `<div class="act-item">
+        <span class="act-badge" style="background:${c.bg};color:${c.color}">${esc(a.type || 'note')}</span>
+        <span style="color:#c8c5c0;flex:1">${esc(a.detail)}</span>
+        <span style="color:var(--muted);font-size:10px;flex-shrink:0">${fmtDate(a.ts)}</span>
+      </div>`;
+    }).join('')}` : ''}`;
+
+  const tabContent = {
+    overview: overviewHtml,
+    ai:       aiHtml,
+    pipeline: pipelineHtml,
+  };
+
+  document.getElementById('profile-modal').innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="modal-name">${esc(l.name)}</div>
+        <div class="modal-sub">
+          <span>${esc([l.city, l.state].filter(Boolean).join(', ')) || 'Unknown location'}</span>
+          <span>·</span>
+          <span style="color:${st.color}">${st.icon} ${l.status}</span>
+          <span>·</span>
+          <span style="color:var(--green)">✓ Active License</span>
+        </div>
+      </div>
+      <button class="close-btn" onclick="closeProfile()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      ${tabHtml('overview', 'Overview')}
+      ${tabHtml('ai',       '✦ AI Tools')}
+      ${tabHtml('pipeline', 'Pipeline')}
+    </div>
+    <div class="modal-body">
+      ${tabContent[activeTab] || ''}
+    </div>`;
+}
+
+// ─── AI CALLS ──────────────────────────────────────────────────────────────
+async function callAI(type) {
+  const l = openLead;
+  if (!l) return;
+
+  const btnId = `btn-${type}`;
+  const outId = `out-${type}`;
+  const btn   = document.getElementById(btnId);
+  const out   = document.getElementById(outId);
+  if (!btn || !out) return;
+
+  const labels = {
+    summary:  '✦ Generate Summary',
+    explain:  'Explain This Score',
+    outreach: '✦ Generate Outreach Email',
+    subject:  '✦ Generate Subject Lines',
+  };
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+  out.innerHTML = '';
+
+  try {
+    const body = {
+      type,
+      lead: l,
+      sender_name:    document.getElementById('sender-name')?.value    || '',
+      sender_company: document.getElementById('sender-company')?.value || '',
+    };
+
+    const res  = await window.fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'AI request failed');
+
+    const text       = data.text || '';
+    const isTemplate = data.is_template;
+
+    if (type === 'summary') {
+      out.innerHTML = `
+        <div class="ai-output gold-left">${esc(text)}</div>
+        ${isTemplate ? '<div class="template-note">Template (no ANTHROPIC_API_KEY set)</div>' : ''}`;
+      // Save to lead
+      l.summary = text;
+      const stored = leads.find(x => x.id === l.id);
+      if (stored) stored.summary = text;
+      persist();
+      toast('Summary ' + (isTemplate ? 'template generated' : 'updated'), 'ai');
+
+    } else if (type === 'explain') {
+      out.innerHTML = `
+        <div class="ai-output purple-left">${esc(text)}</div>
+        ${isTemplate ? '<div class="template-note">Template (no ANTHROPIC_API_KEY set)</div>' : ''}`;
+
+    } else if (type === 'outreach') {
+      logActivity(l.id, 'outreach', 'Outreach email generated');
+      out.innerHTML = `
+        <div class="ai-output">${esc(text)}</div>
+        ${isTemplate ? '<div class="template-note">Template (no ANTHROPIC_API_KEY set)</div>' : ''}
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-sm" onclick="copyToClipboard(${JSON.stringify(text)})">📋 Copy</button>
+          ${l.email ? `<button class="btn btn-sm" onclick="window.open('mailto:${esc(l.email)}?body='+encodeURIComponent(${JSON.stringify(text)}))">📧 Open in Email</button>` : ''}
+        </div>`;
+      toast('Outreach email ready', 'ai');
+
+    } else if (type === 'subject') {
+      const lines = text.split('\n').filter(Boolean);
+      out.innerHTML = lines.map(s =>
+        `<div class="subject-line" onclick="copyToClipboard('${s.replace(/'/g, "\\'")}')">${esc(s)}</div>`
+      ).join('');
+    }
+
+  } catch (err) {
+    out.innerHTML = `<div class="ai-error">⚠ ${esc(err.message)}</div>`;
+    toast('AI error', 'err');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = labels[type] || type;
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied!', 'ok'));
+}
+
+// ─── LEAD ACTIONS ──────────────────────────────────────────────────────────
+function updateLeadStatus(status) {
+  if (!openLead) return;
+  openLead.status = status;
+  const stored = leads.find(l => l.id === openLead.id);
+  if (stored) stored.status = status;
+  logActivity(openLead.id, 'status', `Status → ${status}`);
+  persist(); renderLeads();
+  toast(`Status: ${status}`, 'ok');
+}
+function saveNotes() {
+  if (!openLead) return;
+  const notes = document.getElementById('notes-input')?.value || '';
+  openLead.notes = notes;
+  const stored = leads.find(l => l.id === openLead.id);
+  if (stored) stored.notes = notes;
+  logActivity(openLead.id, 'note', notes.slice(0, 80));
+  persist();
+  toast('Notes saved', 'ok');
+}
+function deleteLead() {
+  if (!openLead || !confirm('Permanently delete this lead?')) return;
+  leads = leads.filter(l => l.id !== openLead.id);
+  persist(); renderLeads(); closeProfile();
+  toast('Lead deleted');
+}
+function logActivity(id, type, detail) {
+  if (!activity[id]) activity[id] = [];
+  activity[id].unshift({ type, detail, ts: new Date().toISOString() });
+  activity[id] = activity[id].slice(0, 30);
+  persist();
+}
+
+// ─── SCRAPING ──────────────────────────────────────────────────────────────
+function quickSearch(city, state) {
+  openPanel('find');
+  setTimeout(() => {
+    const c = document.getElementById('find-city');
+    const s = document.getElementById('find-state');
+    if (c) c.value = city;
+    if (s) s.value = state;
+    doScrape();
+  }, 120);
+}
+
+async function doScrape() {
+  const btn    = document.getElementById('scrape-run-btn');
+  const result = document.getElementById('scrape-result');
+  if (!btn || !result) return;
+
+  const city  = (document.getElementById('find-city')?.value  || 'Houston').trim();
+  const state = (document.getElementById('find-state')?.value || 'TX');
+  const limit = parseInt(document.getElementById('find-limit')?.value || '15');
+
+  btn.disabled    = true;
+  btn.innerHTML   = '<span class="spinner"></span> Fetching from state licensing board…';
+  result.innerHTML = `<div style="font-size:11px;color:var(--muted);padding:8px 0">Contacting ${state} real estate licensing board…</div>`;
+  document.getElementById('status-dot').classList.add('active');
+  document.getElementById('status-text').textContent = `Searching ${city}, ${state}…`;
+
+  try {
+    const res  = await window.fetch('/api/scrape', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ city, state, limit }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      result.innerHTML = `
+        <div class="ai-error">
+          <strong>⚠ ${esc(data.error || 'Search failed')}</strong>
+          ${data.message ? `<br/><br/>${esc(data.message)}` : ''}
+          ${data.supported_states ? `<br/><br/>Supported states: ${data.supported_states.join(', ')}` : ''}
+        </div>`;
+      btn.disabled  = false;
+      btn.innerHTML = '▶ Find Active Agents';
+      document.getElementById('status-dot').classList.remove('active');
+      return;
+    }
+
+    const newLeads = data.leads || [];
+    let added = 0, dupes = 0;
+
+    newLeads.forEach(raw => {
+      // Deduplicate by license number or name+state
+      const isDupe = leads.some(l =>
+        (raw.license_number && l.license_number === raw.license_number) ||
+        (l.name === raw.name && l.state === raw.state)
+      );
+      if (isDupe) { dupes++; return; }
+
+      const lead = {
+        ...raw,
+        id:      nextId++,
+        status:  'new',
+        notes:   null,
+        created: new Date().toISOString().slice(0, 10),
+      };
+      if (!lead.score)   lead.score   = calcScore(lead);
+      if (!lead.summary) lead.summary = buildDefaultSummary(lead);
+      leads.unshift(lead);
+      activity[lead.id] = [];
+      added++;
+    });
+
+    persist(); renderLeads();
+
+    if (added > 0) {
+      const wPhone = newLeads.filter(l => l.phone).length;
+      const wEmail = newLeads.filter(l => l.email).length;
+      result.innerHTML = `
+        <div style="background:var(--green-bg);border:1px solid rgba(59,158,111,.25);border-radius:8px;padding:14px;font-size:11px;color:var(--green);line-height:2.1">
+          ✓ <strong>${added}</strong> active licensed agent${added !== 1 ? 's' : ''} added<br/>
+          ☎ <strong>${wPhone}</strong> have phone numbers<br/>
+          ✉ <strong>${wEmail}</strong> have emails<br/>
+          ${dupes > 0 ? `<span style="color:var(--muted)">⊘ ${dupes} already in your list</span><br/>` : ''}
+          <span style="color:var(--muted)">Source: ${esc(data.source || 'State Licensing Board')}</span>
+        </div>`;
+      toast(`✓ ${added} active agents added`, 'ok');
+    } else if (dupes > 0) {
+      result.innerHTML = `<div style="font-size:11px;color:var(--muted2);padding:8px 0">All ${dupes} agents found are already in your list. Try a different city.</div>`;
+    } else {
+      result.innerHTML = `<div class="ai-error">No active agents found for ${esc(city)}, ${state}. Try a larger city (e.g. "Houston" instead of a suburb).</div>`;
+    }
+
+  } catch (err) {
+    result.innerHTML = `
+      <div class="ai-error">
+        ⚠ ${esc(err.message)}<br/><br/>
+        <span style="color:var(--muted)">Make sure this app is deployed to Vercel. The scraper requires a server to contact government sites.</span>
+      </div>`;
+    toast('Request failed', 'err');
+  }
+
+  btn.disabled  = false;
+  btn.innerHTML = '▶ Find Active Agents';
+  document.getElementById('status-dot').classList.remove('active');
+}
+
+function buildDefaultSummary(l) {
+  const loc  = [l.city, l.state].filter(Boolean).join(', ');
+  const sigs = [l.email && 'email', l.phone && 'phone', l.website && 'website'].filter(Boolean);
+  return `ACTIVE licensed real estate agent in ${loc || 'their market'}.`
+    + (l.license_number ? ` License #${l.license_number}.` : '')
+    + (l.broker_name    ? ` Brokerage: ${l.broker_name}.`  : '')
+    + (sigs.length      ? ` Contact: ${sigs.join(', ')}.`  : ' Reach via broker office.');
+}
+
+// ─── EXPORT ────────────────────────────────────────────────────────────────
+function doExport() {
+  const vis = getVisible();
+  if (!vis.length) { toast('No leads to export', 'err'); return; }
+
+  const headers = ['id','name','email','phone','city','state','website',
+                   'license_number','license_status','broker_name',
+                   'score','status','notes','source','created'];
+  const csvRows = [
+    headers.join(','),
+    ...vis.map(l => headers.map(h => {
+      const v = String(l[h] || '');
+      return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v;
+    }).join(','))
+  ];
+
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `active-agents-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Exported ${vis.length} leads`, 'ok');
+}
+
+// ─── SIDE PANEL ────────────────────────────────────────────────────────────
+function openPanel(type) {
+  const panel = document.getElementById('side-panel');
+  const title = document.getElementById('panel-title');
+  const body  = document.getElementById('panel-body');
+  panel.classList.add('open');
+
+  const titleMap = {
+    find:     '▶ Find Active Agents',
+    add:      '+ Add Lead Manually',
+    settings: '⚙ Settings',
+  };
+  title.textContent = titleMap[type] || type;
+
+  if (type === 'find') {
+    body.innerHTML = `
+      <div style="background:var(--green-bg);border:1px solid rgba(59,158,111,.22);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--green);line-height:1.7;margin-bottom:18px">
+        ✓ Free. No API key. Pulls from official state licensing boards.
+        All results have <strong>ACTIVE</strong> license status.
+      </div>
+      <div class="form-group">
+        <label class="form-label">City</label>
+        <input id="find-city" value="Houston" placeholder="Enter city name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">State</label>
+        <select id="find-state" style="padding:9px 12px">
+          <option value="TX">Texas (TX)</option>
+          <option value="FL">Florida (FL)</option>
+          <option value="NC">North Carolina (NC)</option>
+          <option value="GA">Georgia (GA)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">How many agents</label>
+        <select id="find-limit" style="padding:9px 12px">
+          <option value="10">10 agents</option>
+          <option value="15" selected>15 agents</option>
+          <option value="25">25 agents</option>
+        </select>
+      </div>
+      <button class="btn btn-gold btn-full" id="scrape-run-btn" onclick="doScrape()">▶ Find Active Agents Now</button>
+      <div id="scrape-result" style="margin-top:14px"></div>
+      <div class="divider"></div>
+      <div style="font-size:10px;color:var(--muted);line-height:1.9">
+        <strong style="color:var(--muted2)">Data:</strong> Official state real estate licensing boards<br/>
+        <strong style="color:var(--muted2)">Cost:</strong> Completely free — public government records<br/>
+        <strong style="color:var(--muted2)">Status:</strong> Active licenses only — no expired agents<br/>
+        <strong style="color:var(--muted2)">More states:</strong> AZ, CO, NV, WA, TN coming soon
+      </div>`;
+  }
+
+  else if (type === 'add') {
+    body.innerHTML = `
+      <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.6">Add a lead you found yourself. For bulk active agents use <strong style="color:var(--gold)">▶ Find Active Agents</strong>.</p>
+      <div class="form-group"><label class="form-label">Full Name *</label><input type="text" id="add-name" placeholder="Jane Smith"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" id="add-email" placeholder="jane@realty.com"/></div>
+      <div class="form-group"><label class="form-label">Phone</label><input type="tel" id="add-phone" placeholder="(555) 123-4567"/></div>
+      <div class="form-group"><label class="form-label">Website</label><input type="url" id="add-website" placeholder="https://janesmith.com"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">City</label><input id="add-city"/></div>
+        <div class="form-group" style="max-width:75px"><label class="form-label">State</label><input id="add-state" maxlength="2" placeholder="TX"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Brokerage</label><input id="add-broker" placeholder="Keller Williams, RE/MAX…"/></div>
+      <div class="form-group"><label class="form-label">License #</label><input id="add-license" placeholder="Optional"/></div>
+      <div class="form-group"><label class="form-label">Source</label><input id="add-source" placeholder="Where did you find them?"/></div>
+      <button class="btn btn-gold btn-full" style="margin-top:6px" onclick="submitAddLead()">Add Lead</button>`;
+  }
+
+  else if (type === 'settings') {
+    body.innerHTML = `
+      <div class="section-title" style="margin-top:0">AI Features (Optional)</div>
+      <div style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:13px;font-size:11px;color:var(--muted2);line-height:1.9;margin-bottom:16px">
+        The agent finder is <strong style="color:var(--green)">100% free</strong> — no keys needed.<br/><br/>
+        For <strong style="color:var(--gold)">custom AI responses</strong> (instead of templates), add:<br/>
+        <code>ANTHROPIC_API_KEY</code> = <code>sk-ant-…</code><br/><br/>
+        Where to add it: <strong>Vercel → Project → Settings → Environment Variables → Redeploy</strong><br/><br/>
+        Get a key free at <strong style="color:var(--gold)">console.anthropic.com</strong>
+      </div>
+
+      <div class="section-title">Data</div>
+      <button class="btn btn-danger btn-full btn-sm"
+        onclick="if(confirm('Delete ALL leads from this device? Cannot be undone.')){leads=[];activity={};persist();renderLeads();closePanel();toast('All leads cleared');}">
+        🗑 Clear All Leads from Device
+      </button>`;
+  }
+}
+
+function closePanel() {
+  document.getElementById('side-panel').classList.remove('open');
+}
+
+function submitAddLead() {
+  const name = document.getElementById('add-name')?.value?.trim();
+  if (!name) { toast('Name is required', 'err'); return; }
+
+  const lead = {
+    id:             nextId++,
+    name,
+    email:          document.getElementById('add-email')?.value?.trim()   || null,
+    phone:          document.getElementById('add-phone')?.value?.trim()   || null,
+    website:        document.getElementById('add-website')?.value?.trim() || null,
+    city:           document.getElementById('add-city')?.value?.trim()    || null,
+    state:          (document.getElementById('add-state')?.value?.trim()  || '').toUpperCase() || null,
+    broker_name:    document.getElementById('add-broker')?.value?.trim()  || null,
+    license_number: document.getElementById('add-license')?.value?.trim() || null,
+    source:         document.getElementById('add-source')?.value?.trim()  || 'Manual Entry',
+    license_status: 'Unknown',
+    status:         'new',
+    notes:          null,
+    created:        new Date().toISOString().slice(0, 10),
+  };
+  lead.score   = calcScore(lead);
+  lead.summary = buildDefaultSummary(lead);
+
+  leads.unshift(lead);
+  activity[lead.id] = [];
+  persist(); renderLeads(); closePanel();
+  toast('Lead added', 'ok');
+}
+
+// ─── TOAST ─────────────────────────────────────────────────────────────────
+function toast(msg, type = 'plain') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = `visible ${type}`;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.className = ''; }, 3400);
+}
+
+// ─── KEYBOARD ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeProfile(); closePanel(); }
+});
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+hydrate();
+renderLeads();
+</script>
+</body>
+</html>
