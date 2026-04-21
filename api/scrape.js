@@ -1,20 +1,28 @@
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
 
-  try {
-    // Scraping logic to fetch real estate agents data
-    const data = await fetchRealEstateAgents();
+const app = express();
+app.use(bodyParser.json());
 
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch data' });
-  }
-}
+app.post('/scrape', async (req, res) => {
+    const { city, state, limit } = req.body;
+    
+    if (!city || !state || !limit) {
+        return res.status(400).json({ error: 'City, state, and limit are required.' });
+    }
 
-async function fetchRealEstateAgents() {
-  // Your scraping logic here (e.g., using axios or node-fetch)
-  return [{ name: 'Agent 1', email: 'agent1@example.com' }]; // Example data
-}
+    try {
+        const response = await axios.get(`https://some-licensing-board.api/${state}/agents`, { params: { city, limit } });
+        const agents = response.data;
+        return res.json(agents);
+    } catch (error) {
+        console.error('Error fetching agents:', error);
+        return res.status(500).json({ error: 'Failed to fetch data from licensing board.' });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
